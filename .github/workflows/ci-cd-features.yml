@@ -23,4 +23,4 @@ jobs:
           bash ./scripts/build-push.sh
         env:
           TAG: testing
-          FRONTEND_ENV: development
+          FRONTEND_ENV: dev
