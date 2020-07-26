@@ -17,3 +17,10 @@ jobs:
         run: bash ./scripts/test.sh
         env:
           TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL: false
+      - name: Build And Push images
+        run: |
+          echo ${{ secrets.GH_TOKEN }} | docker login https://docker.pkg.github.com -u elben10 --password-stdin
+          bash ./scripts/build-push.sh
+        env:
+          TAG: testing
+          FRONTEND_ENV: development
