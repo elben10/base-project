@@ -1,0 +1,45 @@
+name: CI/CD
+on:
+  push:
+    branches:
+      - "production"
+
+jobs:
+  test:
+    name: "Testing"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Run testing script
+        run: bash ./scripts/test.sh
+        env:
+          TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL: false
+      - name: Build And Push images
+        run: |
+          echo "${{ secrets.GH_TOKEN }}" | docker login https://docker.pkg.github.com -u elben10 --password-stdin
+          bash ./scripts/build-push.sh
+        env:
+          TAG: production
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: "${{ secrets.SSH_KEY }}"
+          name: id_rsa
+          known_hosts: "${{ secrets.KNOWN_HOSTS }}"
+      - name: Install Required packages
+        run: pip install docker-auto-labels paramiko
+      - name: Install Docker Auto labels
+        run: pip install docker-auto-labels
+      - name: Deploy
+        run: bash ./scripts/deploy.sh
+        env:
+          DOCKER_HOST: "ssh://${{ secrets.DOCKER_HOST }}"
+          DOMAIN: mirror.elben.io
+          STACK_NAME: mirror-elben-io
+          TAG: production
+          TRAEFIK_TAG: mirror.elben.io
