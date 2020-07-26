@@ -15,10 +15,13 @@ jobs:
           python-version: 3.8
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Run testing script
-        run: bash ./scripts/test.sh
+        - name: Run testing script
+        run: |
+          bash ./scripts/test.sh
+          bash ./scripts/build-push.sh
         env:
           TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL: false
+          TAG: testing
       - name: Build And Push images
         run: |
           echo "${{ secrets.GH_TOKEN }}" | docker login https://docker.pkg.github.com -u elben10 --password-stdin
