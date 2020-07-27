@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_PASSWORD: str
     USERS_OPEN_REGISTRATION: bool = False
 
+    MINIO_SERVER: str
+    MINIO_PORT: int
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+
+    MLFLOW_BUCKET: str
+
     class Config:
         case_sensitive = True
 

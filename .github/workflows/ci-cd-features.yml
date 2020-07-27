@@ -14,9 +14,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Run testing script
-        run: |
-          bash ./scripts/test.sh
-          bash ./scripts/build-push.sh
+        run: bash ./scripts/test.sh
         env:
           TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL: false
-          TAG: testing

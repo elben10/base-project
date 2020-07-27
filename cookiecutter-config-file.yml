@@ -22,9 +22,9 @@ default_context:
   traefik_public_constraint_tag: 'traefik-public'
   flower_auth: 'admin:changethis'
   sentry_dsn: ''
-  docker_image_prefix: ''
-  docker_image_backend: 'backend'
-  docker_image_celeryworker: 'celeryworker'
-  docker_image_frontend: 'frontend'
+  docker_image_prefix: 'docker.pkg.github.com/elben10/'
+  docker_image_backend: 'docker.pkg.github.com/elben10/backend'
+  docker_image_celeryworker: 'docker.pkg.github.com/elben10/celeryworker'
+  docker_image_frontend: 'docker.pkg.github.com/elben10/frontend'
   _copy_without_render: [frontend/src/**/*.html, frontend/src/**/*.vue, frontend/node_modules/*, backend/app/app/email-templates/**]
   _template: ./

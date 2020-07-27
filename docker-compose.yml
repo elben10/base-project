@@ -1,6 +1,5 @@
 version: "3.3"
 services:
-
   proxy:
     image: traefik:v2.2
     networks:
@@ -62,7 +61,7 @@ services:
         # Redirect a domain without www to www
         # To enable it remove the previous line and uncomment the next
         # - traefik.http.middlewares.${STACK_NAME}-www-redirect.redirectregex.replacement=https://www.${DOMAIN}/$${3}
-        # Middleware to redirect www, to disable it remove the next line 
+        # Middleware to redirect www, to disable it remove the next line
         - traefik.http.routers.${STACK_NAME?Variable not set}-proxy-https.middlewares=${STACK_NAME?Variable not set}-www-redirect
         # Middleware to redirect www, and redirect HTTP to HTTPS
         # to disable www redirection remove the section: ${STACK_NAME?Variable not set}-www-redirect,
@@ -72,10 +71,12 @@ services:
     image: postgres:12
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
+      - ./backend/docker/postgres/:/docker-entrypoint-initdb.d/
     env_file:
       - .env
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_MULTIPLE_DATABASES=${MLFLOW_DB?Variable not set},${POSTGRES_DB?Variable not set}
     deploy:
       placement:
         constraints:
@@ -110,7 +111,7 @@ services:
     # image: rabbitmq:3-management
     #
     # You also have to change the flower command
-  
+
   flower:
     image: mher/flower
     networks:
@@ -136,11 +137,12 @@ services:
         - traefik.http.routers.${STACK_NAME?Variable not set}-flower-https.tls=true
         - traefik.http.routers.${STACK_NAME?Variable not set}-flower-https.tls.certresolver=le
         - traefik.http.services.${STACK_NAME?Variable not set}-flower.loadbalancer.server.port=5555
-  
+
   backend:
-    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
     depends_on:
       - db
+      - minio
     env_file:
       - .env
     environment:
@@ -150,7 +152,7 @@ services:
       - SMTP_HOST=${SMTP_HOST}
     build:
       context: ./backend
-      dockerfile: backend.dockerfile
+      dockerfile: ./docker/backend/Dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
     deploy:
@@ -159,9 +161,9 @@ services:
         - traefik.constraint-label-stack=${TRAEFIK_TAG?Variable not set}
         - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/redoc`)
         - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=80
-  
+
   celeryworker:
-    image: '${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}'
+    image: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
     depends_on:
       - db
       - queue
@@ -174,12 +176,12 @@ services:
       - SMTP_HOST=${SMTP_HOST?Variable not set}
     build:
       context: ./backend
-      dockerfile: celeryworker.dockerfile
+      dockerfile: ./docker/celeryworker/Dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
-  
+
   frontend:
-    image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
+    image: "${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}"
     build:
       context: ./frontend
       args:
@@ -191,8 +193,66 @@ services:
         - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.rule=PathPrefix(`/`)
         - traefik.http.services.${STACK_NAME?Variable not set}-frontend.loadbalancer.server.port=80
 
+  mlflow:
+    image: "${DOCKER_IMAGE_MLFLOW?Variable not set}:${TAG-latest}"
+    build:
+      context: ./backend
+      dockerfile: ./docker/mlflow/Dockerfile
+    command: |
+      mlflow server
+      --backend-store-uri postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_SERVER/${MLFLOW_DB}
+      --default-artifact-root s3://mlflow/
+      --host 0.0.0.0
+    depends_on:
+      - db
+      - minio
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://${MINIO_SERVER?Variable not set}:${MINIO_PORT?Variable not set}
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY?Variable not set}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY?Variable not set}
+    env_file:
+      - .env
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+        - traefik.constraint-label=${TRAEFIK_PUBLIC_TAG?Variable not set}
+        - traefik.http.routers.${STACK_NAME?Variable not set}-mlflow-http.rule=Host(`mlflow.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-mlflow-http.entrypoints=http
+        - traefik.http.routers.${STACK_NAME?Variable not set}-mlflow-http.middlewares=${STACK_NAME?Variable not set}-https-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-mlflow-https.rule=Host(`mlflow.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-mlflow-https.entrypoints=https
+        - traefik.http.routers.${STACK_NAME?Variable not set}-mlflow-https.tls=true
+        - traefik.http.routers.${STACK_NAME?Variable not set}-mlflow-https.tls.certresolver=le
+        - traefik.http.services.${STACK_NAME?Variable not set}-mlflow.loadbalancer.server.port=5000
+
+  minio:
+    image: minio/minio
+    command: server /data
+    networks:
+      - ${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+      - default
+    env_file:
+      - .env
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+        - traefik.constraint-label=${TRAEFIK_PUBLIC_TAG?Variable not set}
+        - traefik.http.routers.${STACK_NAME?Variable not set}-minio-http.rule=Host(`minio.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-minio-http.entrypoints=http
+        - traefik.http.routers.${STACK_NAME?Variable not set}-minio-http.middlewares=${STACK_NAME?Variable not set}-https-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-minio-https.rule=Host(`minio.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-minio-https.entrypoints=https
+        - traefik.http.routers.${STACK_NAME?Variable not set}-minio-https.tls=true
+        - traefik.http.routers.${STACK_NAME?Variable not set}-minio-https.tls.certresolver=le
+        - traefik.http.services.${STACK_NAME?Variable not set}-minio.loadbalancer.server.port=9000
+    volumes:
+      - app-minio-data:/data
+
 volumes:
   app-db-data:
+  app-minio-data:
 
 networks:
   traefik-public:
