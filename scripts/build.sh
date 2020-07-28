@@ -7,4 +7,5 @@ TAG=${TAG?Variable not set} \
 FRONTEND_ENV=${FRONTEND_ENV-production} \
 docker-compose \
 -f docker-compose.yml \
-build --build-arg BUILDKIT_INLINE_CACHE=1
+--pull \
+build

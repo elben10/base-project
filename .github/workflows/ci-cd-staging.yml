@@ -21,14 +21,10 @@ jobs:
         run: bash ./scripts/test.sh
         env:
           TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL: false
-          COMPOSE_DOCKER_CLI_BUILD: 1
-          DOCKER_BUILDKIT: 1
       - name: Build And Push images
         run: bash ./scripts/build-push.sh
         env:
           TAG: staging
-          COMPOSE_DOCKER_CLI_BUILD: 1
-          DOCKER_BUILDKIT: 1
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
