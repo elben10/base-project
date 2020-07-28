@@ -70,6 +70,8 @@ services:
   db:
     image: "${DOCKER_IMAGE_DB?Variable not set}:${TAG-latest}"
     build:
+      cache_from:
+        - "${DOCKER_IMAGE_DB?Variable not set}:${TAG-latest}"
       context: ./backend
       dockerfile: ./docker/postgres/Dockerfile
     volumes:
@@ -153,6 +155,8 @@ services:
       # Allow explicit env var override for tests
       - SMTP_HOST=${SMTP_HOST}
     build:
+      cache_from:
+        - "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
       context: ./backend
       dockerfile: ./docker/backend/Dockerfile
       args:
@@ -177,6 +181,7 @@ services:
       # Allow explicit env var override for tests
       - SMTP_HOST=${SMTP_HOST?Variable not set}
     build:
+      cache_from: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
       context: ./backend
       dockerfile: ./docker/celeryworker/Dockerfile
       args:
