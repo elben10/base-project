@@ -194,6 +194,8 @@ services:
       context: ./frontend
       args:
         FRONTEND_ENV: ${FRONTEND_ENV-production}
+      cache_from:
+        - "${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}"
     deploy:
       labels:
         - traefik.enable=true
@@ -204,6 +206,8 @@ services:
   mlflow:
     image: "${DOCKER_IMAGE_MLFLOW?Variable not set}:${TAG-latest}"
     build:
+      cache_from:
+        - "${DOCKER_IMAGE_MLFLOW?Variable not set}:${TAG-latest}"
       context: ./backend
       dockerfile: ./docker/mlflow/Dockerfile
     command: |
