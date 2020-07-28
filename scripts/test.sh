@@ -3,6 +3,7 @@
 # Exit in case of error
 set -e
 
+TAG=testing \
 DOMAIN=backend \
 SMTP_HOST="" \
 TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL=false \
@@ -16,3 +17,4 @@ docker-compose -f docker-stack.yml down -v --remove-orphans # Remove possibly pr
 docker-compose -f docker-stack.yml up -d
 docker-compose -f docker-stack.yml exec -T backend bash /app/tests-start.sh "$@"
 docker-compose -f docker-stack.yml down -v --remove-orphans
+docker-compose -f docker-stack.yml push
