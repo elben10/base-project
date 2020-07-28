@@ -17,4 +17,4 @@ docker-compose -f docker-stack.yml down -v --remove-orphans # Remove possibly pr
 docker-compose -f docker-stack.yml up -d
 docker-compose -f docker-stack.yml exec -T backend bash /app/tests-start.sh "$@"
 docker-compose -f docker-stack.yml down -v --remove-orphans
-docker-compose -f docker-stack.yml push
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-stack.yml push

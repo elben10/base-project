@@ -68,10 +68,12 @@ services:
         - traefik.http.routers.${STACK_NAME?Variable not set}-proxy-http.middlewares=${STACK_NAME?Variable not set}-www-redirect,${STACK_NAME?Variable not set}-https-redirect
 
   db:
-    image: postgres:12
+    image: "${DOCKER_IMAGE_DB?Variable not set}:${TAG-latest}"
+    build:
+      context: ./backend
+      dockerfile: ./docker/postgres/Dockerfile
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
-      - ./backend/docker/postgres/:/docker-entrypoint-initdb.d/
     env_file:
       - .env
     environment:
