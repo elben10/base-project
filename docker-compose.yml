@@ -202,7 +202,7 @@ services:
       dockerfile: ./docker/mlflow/Dockerfile
     command: |
       mlflow server
-      --backend-store-uri postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_SERVER/${MLFLOW_DB}
+      --backend-store-uri postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_SERVER/${MLFLOW_DATABASE}
       --default-artifact-root s3://mlflow/
       --host 0.0.0.0
     depends_on:
